@@ -85,7 +85,7 @@ class StackOverflow extends Serializable {
 
     var questions = postings
       .filter(q => q.postingType == 1)
-      .map(q => (q.parentId.get, q))
+      .map(q => (q.id, q))
 
     questions.join(answers).groupByKey()
   }
@@ -292,10 +292,19 @@ class StackOverflow extends Serializable {
     val closestGrouped = closest.groupByKey()
 
     val median = closestGrouped.mapValues { vs =>
-      val langLabel: String = ??? // most common language in the cluster
-    val langPercent: Double = ??? // percent of the questions in the most common language
-    val clusterSize: Int = ???
-      val medianScore: Int = ???
+      var grouped = vs
+        .map(_._1 / langSpread)
+        .groupBy(identity)
+        .mapValues(_.size)
+
+      val maxLangIndex = grouped.maxBy(_._2)._1
+      val langLabel: String = langs(maxLangIndex) // most common language in the cluster
+    val langPercent: Double = grouped(maxLangIndex) * 100.0d / vs.size // percent of the questions in the most common language
+    val clusterSize: Int = vs.size
+      val sortedScores = vs.map(_._2).toList.sorted
+      val middle = clusterSize / 2 // rounds down 3/2 = 1 4/2 = 2 5/2 =2
+    val medianScore: Int = if(clusterSize % 2 == 0) (sortedScores(middle-1) + sortedScores(middle)) / 2 else sortedScores(middle)
+
 
       (langLabel, langPercent, clusterSize, medianScore)
     }
